@@ -35,17 +35,22 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     let mut msg = String::new();
     reader.read_line(&mut msg).expect("Cannot retreive message");
     print!("redis> {msg}");
-    let spilt_args: Vec<&str> = msg.trim().split_whitespace().collect();
-    // io::stdout().flush().expect("Failed to flush stdout");
-    for (idx, arg) in spilt_args.iter().enumerate() {
-        eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
-        if *arg == "*1\r\n$4\r\nPING\r\n" {
-            //eprintln!("=== ping success ===");
-            stream.write_all(b"+PONG\r\n").unwrap();
-            //print!("+PONG\r\n");
-            stream.flush()?;
-        }
+
+    if msg.to_uppercase().contains("PING") {
+        stream.write_all(b"+PONG\r\n")?;
+        stream.flush()?;
     }
+    // let spilt_args: Vec<&str> = msg.trim().split_whitespace().collect();
+    // // io::stdout().flush().expect("Failed to flush stdout");
+    // for (idx, arg) in spilt_args.iter().enumerate() {
+    //     eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
+    //     if *arg == "*1\r\n$4\r\nPING\r\n" {
+    //         //eprintln!("=== ping success ===");
+    //         stream.write_all(b"+PONG\r\n").unwrap();
+    //         //print!("+PONG\r\n");
+    //         stream.flush()?;
+    //     }
+    // }
     Ok(())
 }
 fn handle_client(stream: TcpStream) {

@@ -41,8 +41,8 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
         //eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
         if *arg == "PING" {
             //eprintln!("=== ping success ===");
-            stream.write_all(b"+PONG\r\n")?;
-            print!("+PONG\r\n");
+            stream.write_all(b"+PONG\r\n").unwrap();
+            //print!("+PONG\r\n");
             stream.flush()?;
         }
     }

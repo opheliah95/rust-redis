@@ -34,7 +34,7 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     let mut reader = BufReader::new(&stream);
     let mut msg = String::new();
     reader.read_line(&mut msg).expect("Cannot retreive message");
-    //print!("redis> {msg}");
+    print!("redis> {msg}");
     let spilt_args: Vec<&str> = msg.trim().split_whitespace().collect();
     // io::stdout().flush().expect("Failed to flush stdout");
     for (idx, arg) in spilt_args.iter().enumerate() {

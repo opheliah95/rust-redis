@@ -35,11 +35,16 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     let mut msg = String::new();
     reader.read_line(&mut msg).expect("Cannot retreive message");
     //print!("redis> {msg}");
-    let spilt_args: Vec<&str> = msg.split("\n").collect();
+    let spilt_args: Vec<&str> = msg.trim().split("\\n").collect();
     // io::stdout().flush().expect("Failed to flush stdout");
-    for arg in spilt_args {
-        stream.write_all(b"+PONG\r\n");
-        stream.flush()?;
+    for (idx, arg) in spilt_args.iter().enumerate() {
+        //eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
+        if *arg == "PING" {
+            //eprintln!("===end");
+
+            stream.write(b"+PONG\r\n")?;
+            stream.flush()?;
+        }
     }
     Ok(())
 }

@@ -39,7 +39,7 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     // io::stdout().flush().expect("Failed to flush stdout");
     for (idx, arg) in spilt_args.iter().enumerate() {
         eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
-        if *arg == "PING" {
+        if *arg == "*1\r\n$4\r\nPING\r\n" {
             //eprintln!("=== ping success ===");
             stream.write_all(b"+PONG\r\n").unwrap();
             //print!("+PONG\r\n");

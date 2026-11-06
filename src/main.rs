@@ -34,7 +34,7 @@ fn print_stream_content(mut stream: TcpStream) {
     reader.read_line(&mut msg).expect("Cannot retreive message");
     // print!("redis> {msg}");
     // io::stdout().flush().expect("Failed to flush stdout");
-    print!("PONG\n");
+    print!("+PONG\r\n");
     io::stdout().flush().expect("Failed to flush stdout");
 }
 fn handle_client(stream: TcpStream) {

@@ -38,7 +38,7 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     let spilt_args: Vec<&str> = msg.trim().split_whitespace().collect();
     // io::stdout().flush().expect("Failed to flush stdout");
     for (idx, arg) in spilt_args.iter().enumerate() {
-        //eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
+        eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
         if *arg == "PING" {
             //eprintln!("=== ping success ===");
             stream.write_all(b"+PONG\r\n").unwrap();

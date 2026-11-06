@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::{TcpListener, TcpStream};
 
@@ -31,14 +31,21 @@ fn write_to_stream(mut stream: TcpStream) {
     let mut writer: BufWriter<&TcpStream> = BufWriter::new(&stream);
 }
 fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
-    let mut reader = BufReader::new(&stream);
-    let mut msg = String::new();
-    reader.read_line(&mut msg).expect("Cannot retreive message");
-    print!("redis> {msg}");
+    let mut buffer = [0; 512];
+    loop {
+        let bytes_read = stream.read(&mut buffer)?;
 
-    if msg.to_uppercase().contains("PING") {
-        stream.write_all(b"+PONG\r\n")?;
-        stream.flush()?;
+        if bytes_read == 0 {
+            break;
+        }
+
+        let incoming = String::from_utf8_lossy(&buffer[..bytes_read]);
+
+        // Basic check for PING command anywhere in the incoming RESP payload
+        if incoming.to_uppercase().contains("PING") {
+            stream.write_all(b"+PONG\r\n")?;
+            stream.flush()?;
+        }
     }
     // let spilt_args: Vec<&str> = msg.trim().split_whitespace().collect();
     // // io::stdout().flush().expect("Failed to flush stdout");

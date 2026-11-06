@@ -28,14 +28,15 @@ fn main() {
 fn write_to_stream(mut stream: TcpStream) {
     let mut writer: BufWriter<&TcpStream> = BufWriter::new(&stream);
 }
-fn print_stream_content(mut stream: TcpStream) {
+fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     let mut reader = BufReader::new(&stream);
     let mut msg = String::new();
     reader.read_line(&mut msg).expect("Cannot retreive message");
     // print!("redis> {msg}");
     // io::stdout().flush().expect("Failed to flush stdout");
-    print!("+PONG\r\n");
-    io::stdout().flush().expect("Failed to flush stdout");
+    stream.write_all(b"+PONG\r\n");
+    stream.flush()?;
+    Ok(())
 }
 fn handle_client(stream: TcpStream) {
     print_stream_content(stream);

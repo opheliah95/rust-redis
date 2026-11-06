@@ -3,6 +3,8 @@ use std::io::{self, Write};
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::{TcpListener, TcpStream};
 
+use tokio::io::split;
+
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
@@ -32,10 +34,13 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     let mut reader = BufReader::new(&stream);
     let mut msg = String::new();
     reader.read_line(&mut msg).expect("Cannot retreive message");
-    // print!("redis> {msg}");
+    //print!("redis> {msg}");
+    let spilt_args: Vec<&str> = msg.split("\n").collect();
     // io::stdout().flush().expect("Failed to flush stdout");
-    stream.write_all(b"+PONG\r\n");
-    stream.flush()?;
+    for arg in spilt_args {
+        stream.write_all(b"+PONG\r\n");
+        stream.flush()?;
+    }
     Ok(())
 }
 fn handle_client(stream: TcpStream) {

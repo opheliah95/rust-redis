@@ -3,6 +3,11 @@ use std::io::{self, Read, Write};
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use std::borrow::Cow;
+use regex::Regex;
+use regex::RegexSet;
+
+
 
 use tokio::io::split;
 
@@ -30,9 +35,6 @@ async fn main(){
 
 }
 
-fn write_to_stream(mut stream: TcpStream) {
-    let mut writer: BufWriter<&TcpStream> = BufWriter::new(&stream);
-}
 fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
     let mut buffer = [0; 512];
     loop {
@@ -49,20 +51,31 @@ fn print_stream_content(mut stream: TcpStream) -> std::io::Result<()> {
             stream.write_all(b"+PONG\r\n")?;
             stream.flush()?;
         }
+
+        resp_handler(incoming);
     }
-    // let spilt_args: Vec<&str> = msg.trim().split_whitespace().collect();
-    // // io::stdout().flush().expect("Failed to flush stdout");
-    // for (idx, arg) in spilt_args.iter().enumerate() {
-    //     eprintln!("idx={idx} arg={arg}, is_ping={}", *arg == "PING");
-    //     if *arg == "*1\r\n$4\r\nPING\r\n" {
-    //         //eprintln!("=== ping success ===");
-    //         stream.write_all(b"+PONG\r\n").unwrap();
-    //         //print!("+PONG\r\n");
-    //         stream.flush()?;
-    //     }
-    // }
+   
     Ok(())
 }
+
+
+fn resp_handler(cow: Cow<'_, str>) {
+    let re_array_start = Regex::new(r"\*(?<len>\d)\\r\\n").unwrap(); // find the len
+    let re_array_content = Regex::new(r"$(?<len>\d)\\r\\n").unwrap();
+    let Some(arr_len) = re_array_start.captures(&cow) else {
+        eprintln!("{} not an array", &cow);
+        return;
+    };
+
+        eprintln!("the len is {}", &arr_len["len"]);
+
+     let Some(contents) = re_array_content.captures(&cow) else {
+        eprintln!("{:?} not not have any val", &cow);
+        return;
+    };
+    eprintln!("the content is {}", &contents["txt"]);
+}
+
 fn handle_client(stream: TcpStream) {
     print_stream_content(stream);
 }

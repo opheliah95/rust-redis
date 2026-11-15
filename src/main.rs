@@ -5,7 +5,8 @@ use std::net::{TcpListener, TcpStream};
 
 use tokio::io::split;
 
-fn main() {
+#[tokio::main]
+async fn main(){
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
@@ -25,6 +26,7 @@ fn main() {
             }
         }
     }
+
 }
 
 fn write_to_stream(mut stream: TcpStream) {

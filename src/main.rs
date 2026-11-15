@@ -2,6 +2,7 @@
 use std::io::{self, Read, Write};
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::{TcpListener, TcpStream};
+use std::thread;
 
 use tokio::io::split;
 
@@ -19,7 +20,7 @@ async fn main(){
             Ok(_stream) => {
                 println!("accepted new connection");
 
-                handle_client(_stream);
+                thread::spawn(|| {handle_client(_stream);});
             }
             Err(e) => {
                 println!("error: {}", e);

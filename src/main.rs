@@ -132,6 +132,7 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
                         Some(data) => {
                             data.check_timer(); // see if key expired
                             let output = format_bulk_string(&data.value);
+                            eprintln!("the outoput is {output}");
                             write_output_to_stream(stream, &output);
                         }
                         None => {

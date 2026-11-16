@@ -24,8 +24,11 @@ impl Data {
 
     pub fn check_timer(&mut self) {
         //eprintln!("struct ex={} px={}", self.ex, self.px);
-
-        if Instant::now() > self.end || !(self.ex == 0 && self.px == 0){
+        if (self.ex == 0 && self.px == 0) {
+            return;
+        }
+        
+        if Instant::now() > self.end{
             self.value = "$-1\r\n".to_string();
         }
     }

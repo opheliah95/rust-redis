@@ -88,10 +88,10 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
 
     eprintln!("captured array: {:?}", captures);
     match captures.as_slice() {
-        ["ECHO", ..] => {
-            let args = &captures[1..];
+        ["ECHO", content] => {
+            //let args = &captures[1..];
             if args.len() == 1 {
-                let output = format_bulk_string(args[1]);
+                let output = format_bulk_string(content);
                 write_output_to_stream(stream, &output);
             }
         }

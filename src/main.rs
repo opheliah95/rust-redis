@@ -74,7 +74,7 @@ fn format_bulk_string(input: &str) -> String {
 }
 
 fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
-    let null_string = "$0\r\n\r\n";
+    let null_string = "$-1\r\n";
     let re_array_start = Regex::new(r"\*(?<len>\d)\r\n").unwrap(); // find the len
     let re_array_content = Regex::new(r"\$(?<len>\d+)\r\n(?<txt>(.*))\r\n").unwrap();
     let Some(arr_len) = re_array_start.captures(&cow) else {
@@ -131,8 +131,11 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
                     match map.get_mut(key) {
                         Some(data) => {
                             data.check_timer(); // see if key expired
+                            if &data.value == null_string {
+                                write_output_to_stream(stream, null_string);
+                                return;
+                            }
                             let output = format_bulk_string(&data.value);
-                            eprintln!("the outoput is {output}");
                             write_output_to_stream(stream, &output);
                         }
                         None => {

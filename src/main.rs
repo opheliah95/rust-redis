@@ -78,7 +78,7 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
         return;
     };
 
-    eprintln!("the array len is {}", &arr_len["len"]);
+    //eprintln!("the array len is {}", &arr_len["len"]);
     let captures: Vec<&str> = re_array_content
         .captures_iter(&cow)
         .map(|c| c.name("txt").unwrap().as_str())
@@ -98,18 +98,18 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
             let val = captures[2].to_string();
             {
                 let mut map = key_val.lock().unwrap();
-                eprintln!("SET {key} = {val}");
+               // eprintln!("SET {key} = {val}");
                 map.insert(key, val);
                 write_output_to_stream(stream, "+OK\r\n");
             }
         }
         ["GET", ..] => {
-            let key = captures[1].to_string();
+            let key = captures[1];
             {
                 {
                     let mut map = key_val.lock().unwrap();
                     eprintln!("all keys in map {:?} vs the key ={key}", map.keys());
-                    match map.get(&key) {
+                    match map.get(key) {
                         Some(val) => {
                             let output = format_bulk_string(val);
                             write_output_to_stream(stream, &output);

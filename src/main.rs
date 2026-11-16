@@ -1,4 +1,5 @@
 #![allow(unused_imports)]
+use codecrafters_redis::Data;
 use regex::Regex;
 use regex::RegexSet;
 use std::borrow::Cow;
@@ -9,7 +10,7 @@ use std::net::{TcpListener, TcpStream};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
-type KeyVal = Arc<Mutex<HashMap<String, String>>>;
+type KeyVal = Arc<Mutex<HashMap<String, Data>>>;
 
 #[tokio::main]
 async fn main() {
@@ -63,6 +64,7 @@ fn handle_client(stream: TcpStream, key_val: &KeyVal) {
 fn write_output_to_stream(mut stream: &TcpStream, output: &str) {
     stream.write_all(output.as_bytes()).unwrap();
     stream.flush().unwrap();
+    return;
 }
 
 fn format_bulk_string(input: &str) -> String {
@@ -98,10 +100,23 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
         ["SET", ..] => {
             let key = captures[1].to_string();
             let val = captures[2].to_string();
+            let mut px: u64 = 0;
+            let mut ex: u64 = 0;
+
+            if captures.len() > 3 {
+                if captures.contains(&"PX") {
+                    px = captures[4].parse().unwrap();
+                } else if captures.contains(&"EX") {
+                    ex = captures[4].parse().unwrap();
+                }
+            }
             {
                 let mut map = key_val.lock().unwrap();
                 // eprintln!("SET {key} = {val}");
-                map.insert(key, val);
+                // init new field and start timer
+                let mut data = Data::new(val, ex, px);
+                data.init_timer();
+                map.insert(key, data);
                 write_output_to_stream(stream, "+OK\r\n");
             }
         }
@@ -111,9 +126,10 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
                 {
                     let mut map = key_val.lock().unwrap();
                     eprintln!("all keys in map {:?} vs the key ={key}", map.keys());
-                    match map.get(key) {
-                        Some(val) => {
-                            let output = format_bulk_string(val);
+                    match map.get_mut(key) {
+                        Some(data) => {
+                            data.check_timer(); // see if key expired
+                            let output = format_bulk_string(&data.value);
                             write_output_to_stream(stream, &output);
                         }
                         None => {

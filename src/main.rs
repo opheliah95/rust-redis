@@ -74,7 +74,7 @@ fn format_bulk_string(input: &str) -> String {
 fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
     let null_string = "$0\r\n\r\n";
     let re_array_start = Regex::new(r"\*(?<len>\d)\r\n").unwrap(); // find the len
-    let re_array_content = Regex::new(r"\$(?<len>\d)\r\n(?<txt>(.*))\r\n").unwrap();
+    let re_array_content = Regex::new(r"\$(?<len>\d+)\r\n(?<txt>(.*))\r\n").unwrap();
     let Some(arr_len) = re_array_start.captures(&cow) else {
         eprintln!("{} not an array", &cow);
         return;

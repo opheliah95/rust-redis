@@ -90,7 +90,7 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
     match captures.as_slice() {
         ["ECHO", content] => {
             //let args = &captures[1..];
-            if args.len() == 1 {
+            if captures.len() == 2 {
                 let output = format_bulk_string(content);
                 write_output_to_stream(stream, &output);
             }

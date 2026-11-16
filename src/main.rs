@@ -109,6 +109,8 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
                 } else if captures.contains(&"EX") {
                     ex = captures[4].parse().unwrap();
                 }
+
+                eprintln!("ex is {ex} in sec and px is {px} in mil")
             }
             {
                 let mut map = key_val.lock().unwrap();

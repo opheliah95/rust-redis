@@ -23,7 +23,7 @@ impl Data {
     }
 
     pub fn check_timer(&mut self) {
-        if Instant::now() > self.end || (self.ex == 0 && self.px == 0){
+        if Instant::now() > self.end || !(self.ex == 0 && self.px == 0){
             self.value = "$-1\r\n".to_string();
         }
     }
@@ -40,7 +40,7 @@ impl Data {
         }
 
         if self.px != 0 {
-            self.end = self.start + Duration::from_millis(self.ex);
+            self.end = self.start + Duration::from_millis(self.px);
         }
     }
 

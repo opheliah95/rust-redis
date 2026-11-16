@@ -2,54 +2,75 @@
 use regex::Regex;
 use regex::RegexSet;
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::io::{self, Read, Write};
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::{TcpListener, TcpStream};
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use std::thread;
-
-use tokio::io::split;
+type KeyVal = Arc<Mutex<HashMap<String, String>>>;
 
 #[tokio::main]
 async fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
-    // Uncomment the code below to pass the first stage
-    //
+    // a heapmap to store data
+    let mut key_val: KeyVal = Arc::new(Mutex::new(HashMap::new()));
+
+    //tcp listener
     let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(_stream) => {
-                println!("accepted new connection");
-
-                thread::spawn(|| {
-                    handle_client(_stream);
-                });
-            }
-            Err(e) => {
-                println!("error: {}", e);
-            }
-        }
-    }
-}
-
-fn print_stream_content(mut stream: TcpStream) {
-    let mut buffer = [0; 512];
     loop {
-        let bytes_read = stream.read(&mut buffer).unwrap();
+        for stream in listener.incoming() {
+            match stream {
+                Ok(_stream) => {
+                    println!("accepted new connection");
+                    let value = key_val.clone();
 
-        if bytes_read == 0 {
-            break;
+                    thread::spawn(move || {
+                        handle_client(_stream, &value);
+                    });
+                }
+                Err(e) => {
+                    println!("error: {}", e);
+                }
+            }
         }
-
-        let incoming = String::from_utf8_lossy(&buffer[..bytes_read]);
-
-        resp_handler(incoming, &mut stream);
     }
 }
 
-fn resp_handler(cow: Cow<'_, str>, mut stream: &TcpStream) {
+fn print_stream_content(mut stream: TcpStream, key_val: &KeyVal) {
+    let mut buffer = [0; 512];
+    let bytes_read = stream.read(&mut buffer).unwrap();
+
+    if bytes_read == 0 {
+        return;
+    }
+
+    let incoming = String::from_utf8_lossy(&buffer[..bytes_read]);
+
+    resp_handler(incoming, &mut stream, &key_val);
+}
+
+fn handle_client(stream: TcpStream, key_val: &KeyVal) {
+    print_stream_content(stream, &key_val);
+}
+
+fn write_output_to_stream(mut stream: &TcpStream, output: &str) {
+    stream.write_all(output.as_bytes()).unwrap();
+    stream.flush().unwrap();
+}
+
+fn format_bulk_string(input: &str) -> String {
+    let arg_len = input.len();
+    let output = format!("${arg_len}\r\n{input}\r\n");
+    return output;
+}
+
+fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
+    let null_string = "$0\r\n\r\n";
     let re_array_start = Regex::new(r"\*(?<len>\d)\r\n").unwrap(); // find the len
     let re_array_content = Regex::new(r"\$(?<len>\d)\r\n(?<txt>(.*))\r\n").unwrap();
     let Some(arr_len) = re_array_start.captures(&cow) else {
@@ -57,7 +78,7 @@ fn resp_handler(cow: Cow<'_, str>, mut stream: &TcpStream) {
         return;
     };
 
-    eprintln!("the len is {}", &arr_len["len"]);
+    eprintln!("the array len is {}", &arr_len["len"]);
     let captures: Vec<&str> = re_array_content
         .captures_iter(&cow)
         .map(|c| c.name("txt").unwrap().as_str())
@@ -68,33 +89,41 @@ fn resp_handler(cow: Cow<'_, str>, mut stream: &TcpStream) {
         ["ECHO", ..] => {
             let args = &captures[1..];
             if args.len() == 1 {
-                let content = args[0];
-                let arg_len = content.len();
-                let output = format!("${arg_len}\r\n{content}\r\n");
-                stream.write_all(output.as_bytes()).unwrap();
-                stream.flush().unwrap();
+                let output = format_bulk_string(args[1]);
+                write_output_to_stream(stream, &output);
+            }
+        }
+        ["SET", ..] => {
+            let key = captures[1].to_string();
+            let val = captures[2].to_string();
+            {
+                let mut map = key_val.lock().unwrap();
+                eprintln!("SET {key} = {val}");
+                map.insert(key, val);
+                write_output_to_stream(stream, "+OK\r\n");
+            }
+        }
+        ["GET", ..] => {
+            let key = captures[1].to_string();
+            {
+                {
+                    let mut map = key_val.lock().unwrap();
+                    eprintln!("all keys in map {:?} vs the key ={key}", map.keys());
+                    match map.get(&key) {
+                        Some(val) => {
+                            let output = format_bulk_string(val);
+                            write_output_to_stream(stream, &output);
+                        }
+                        None => {
+                            write_output_to_stream(stream, null_string);
+                        }
+                    }
+                }
             }
         }
         ["PING", ..] => {
-            stream.write_all(b"+PONG\r\n").unwrap();
-            stream.flush().unwrap();
+            write_output_to_stream(stream, "+PONG\r\n");
         }
         _ => {}
     }
-    // let res: Vec<(&str, &str)> = re_array_content
-    //     .captures_iter(&cow)
-    //     .map(|caps| {
-    //         let len = caps.name("len").unwrap().as_str();
-    //         let txt = caps.name("txt").unwrap().as_str();
-    //         (len, txt)
-    //     })
-    //     .collect();
-
-    // for (len, item) in res {
-    //     eprintln!("{item} has len of {len}");
-    // }
-}
-
-fn handle_client(stream: TcpStream) {
-    print_stream_content(stream);
 }

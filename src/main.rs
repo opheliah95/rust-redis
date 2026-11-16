@@ -43,15 +43,17 @@ async fn main() {
 
 fn print_stream_content(mut stream: TcpStream, key_val: &KeyVal) {
     let mut buffer = [0; 512];
-    let bytes_read = stream.read(&mut buffer).unwrap();
+    loop {
+        let bytes_read = stream.read(&mut buffer).unwrap();
 
-    if bytes_read == 0 {
-        return;
+        if bytes_read == 0 {
+            return;
+        }
+
+        let incoming = String::from_utf8_lossy(&buffer[..bytes_read]);
+
+        resp_handler(incoming, &mut stream, &key_val);
     }
-
-    let incoming = String::from_utf8_lossy(&buffer[..bytes_read]);
-
-    resp_handler(incoming, &mut stream, &key_val);
 }
 
 fn handle_client(stream: TcpStream, key_val: &KeyVal) {
@@ -98,7 +100,7 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
             let val = captures[2].to_string();
             {
                 let mut map = key_val.lock().unwrap();
-               // eprintln!("SET {key} = {val}");
+                // eprintln!("SET {key} = {val}");
                 map.insert(key, val);
                 write_output_to_stream(stream, "+OK\r\n");
             }

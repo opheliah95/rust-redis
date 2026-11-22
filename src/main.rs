@@ -76,6 +76,10 @@ fn format_bulk_string(input: &str) -> String {
     return output;
 }
 
+fn format_interger(input: usize) -> String {
+    return format!(":[<+|->]{input}\r\n");
+}
+
 fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_table: &MyListTable) {
     let null_string = "$-1\r\n";
     let re_array_start = Regex::new(r"\*(?<len>\d)\r\n").unwrap(); // find the len
@@ -157,18 +161,12 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_ta
                 let mut list_unlocked = list_table.lock().unwrap();
                 match list_unlocked.get_mut(name_owned) {
                     Some(lst) => {
-                        contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
-                        let display = lst.display();
-                        let output = format_bulk_string(&display);
-                        write_output_to_stream(stream, &output);
+                        amend_rpush_list(stream, contents, lst);
                     }
                     None => {
                         let mut lst = List::new();
                         lst.update_name(name_owned);
-                        contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
-                        let display = lst.display();
-                        let output = format_bulk_string(&display);
-                        write_output_to_stream(stream, &output);
+                        amend_rpush_list(stream, contents, &mut lst);
                     }
                 }
             }
@@ -179,4 +177,10 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_ta
         }
         _ => {}
     }
+}
+
+fn amend_rpush_list(stream: &TcpStream, contents: Vec<&str>, lst: &mut List) {
+    contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
+    let output = format_interger(contents.len());
+    write_output_to_stream(stream, &output);
 }

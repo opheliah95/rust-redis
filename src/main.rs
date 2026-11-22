@@ -77,7 +77,7 @@ fn format_bulk_string(input: &str) -> String {
 }
 
 fn format_interger(input: usize) -> String {
-    return format!(":[<+|->]{input}\r\n");
+    return format!(":{input}\r\n");
 }
 
 fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_table: &MyListTable) {

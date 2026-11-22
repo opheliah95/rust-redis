@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use codecrafters_redis::Data;
+use codecrafters_redis::{Data, List, ListTable};
 use regex::Regex;
 use regex::RegexSet;
 use std::borrow::Cow;
@@ -8,9 +8,11 @@ use std::io::{self, Read, Write};
 use std::io::{BufRead, BufReader, BufWriter};
 use std::net::{TcpListener, TcpStream};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 type KeyVal = Arc<Mutex<HashMap<String, Data>>>;
+type MyList = Arc<Mutex<List>>;
+type MyListTable = Arc<Mutex<HashMap<String, List>>>;
 
 #[tokio::main]
 async fn main() {
@@ -19,7 +21,8 @@ async fn main() {
 
     // a heapmap to store data
     let mut key_val: KeyVal = Arc::new(Mutex::new(HashMap::new()));
-
+    let mut my_list: MyList = Arc::new(Mutex::new(List::new()));
+    let mut my_list_table: MyListTable = Arc::new(Mutex::new(HashMap::new()));
     //tcp listener
     let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
 
@@ -29,9 +32,9 @@ async fn main() {
                 Ok(_stream) => {
                     println!("accepted new connection");
                     let value = key_val.clone();
-
+                    let my_list_table_clone: Arc<Mutex<Vec<List>>> = my_list_table.clone();
                     thread::spawn(move || {
-                        handle_client(_stream, &value);
+                        handle_client(_stream, &value, &my_list_table_clone);
                     });
                 }
                 Err(e) => {
@@ -42,7 +45,7 @@ async fn main() {
     }
 }
 
-fn print_stream_content(mut stream: TcpStream, key_val: &KeyVal) {
+fn print_stream_content(mut stream: TcpStream, key_val: &KeyVal, list_table: &MyListTable) {
     let mut buffer = [0; 512];
     loop {
         let bytes_read = stream.read(&mut buffer).unwrap();
@@ -53,12 +56,12 @@ fn print_stream_content(mut stream: TcpStream, key_val: &KeyVal) {
 
         let incoming = String::from_utf8_lossy(&buffer[..bytes_read]);
 
-        resp_handler(incoming, &mut stream, &key_val);
+        resp_handler(incoming, &mut stream, &key_val, &list_table);
     }
 }
 
-fn handle_client(stream: TcpStream, key_val: &KeyVal) {
-    print_stream_content(stream, &key_val);
+fn handle_client(stream: TcpStream, key_val: &KeyVal, list_table: &MyListTable) {
+    print_stream_content(stream, &key_val, &list_table);
 }
 
 fn write_output_to_stream(mut stream: &TcpStream, output: &str) {
@@ -73,7 +76,7 @@ fn format_bulk_string(input: &str) -> String {
     return output;
 }
 
-fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
+fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_table: &MyListTable) {
     let null_string = "$-1\r\n";
     let re_array_start = Regex::new(r"\*(?<len>\d)\r\n").unwrap(); // find the len
     let re_array_content = Regex::new(r"\$(?<len>\d+)\r\n(?<txt>(.*))\r\n").unwrap();
@@ -145,6 +148,27 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal) {
                 }
             }
         }
+        ["RPUSH", name, ..] => {
+            let contents = captures[2..].to_owned();
+            let name_owned = name.to_owned();
+            // check if list exist
+            {
+                let mut list_unlocked = list_table.lock().unwrap();
+                match list_unlocked.get_mut(name_owned) {
+                    Some(lst) => {
+                        contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
+                        lst.display();
+                    }
+                    None => {
+                        let mut lst = List::new();
+                        lst.update_name(name_owned);
+                        contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
+                        lst.display();
+                    }
+                }
+            }
+        }
+
         ["PING", ..] => {
             write_output_to_stream(stream, "+PONG\r\n");
         }

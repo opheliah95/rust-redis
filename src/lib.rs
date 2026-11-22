@@ -53,3 +53,45 @@ impl Data {
 
 
 }
+pub struct ListTable {
+    lists:Vec<List>
+}
+
+impl ListTable {
+    pub fn new () -> ListTable {
+        ListTable { lists: Vec::new() }
+    }
+    pub fn list_exist(&mut self, name: String) -> bool {
+
+       return self.lists.iter().any(|list| list.name == name)
+    }
+}
+
+pub struct List {
+    pub name: String,
+    pub elements: Vec<String>
+}
+
+impl List {
+    pub fn new() -> List {
+        List {
+            name: "".to_string(),
+            elements: Vec::new()
+        }
+    }
+
+    // change list name
+    pub fn update_name(&mut self, name:&str ) {
+        self.name = name.to_string();
+    }
+
+    // add element to list
+    pub fn add_to_list(&mut self, content: String) {
+        self.elements.push(content)
+    }
+
+    // display after an element is added to list
+    pub fn display(&mut self) -> String {
+        return format!("(integer){}", self.elements.len());
+    }
+}

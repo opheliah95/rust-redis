@@ -159,15 +159,16 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_ta
                     Some(lst) => {
                         contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
                         let display = lst.display();
-                        write_output_to_stream(stream, &display);
+                        let output = format_bulk_string(&display);
+                        write_output_to_stream(stream, &output);
                     }
                     None => {
                         let mut lst = List::new();
                         lst.update_name(name_owned);
                         contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
                         let display = lst.display();
-                        //eprintln!("the display for new lst ={display}" );
-                        write_output_to_stream(stream, &display);
+                        let output = format_bulk_string(&display);
+                        write_output_to_stream(stream, &output);
                     }
                 }
             }

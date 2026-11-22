@@ -92,6 +92,6 @@ impl List {
 
     // display after an element is added to list
     pub fn display(&mut self) -> String {
-        return format!("(integer){}", self.elements.len());
+        return format!("(integer) {}", self.elements.len());
     }
 }

@@ -151,19 +151,23 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_ta
         ["RPUSH", name, ..] => {
             let contents = captures[2..].to_owned();
             let name_owned = name.to_owned();
+            eprintln!("RPUSH reached: ...name is {name}, contents={:?}", contents);
             // check if list exist
             {
                 let mut list_unlocked = list_table.lock().unwrap();
                 match list_unlocked.get_mut(name_owned) {
                     Some(lst) => {
                         contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
-                        lst.display();
+                        let display = lst.display();
+                        write_output_to_stream(stream, &display);
                     }
                     None => {
                         let mut lst = List::new();
                         lst.update_name(name_owned);
                         contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
-                        lst.display();
+                        let display = lst.display();
+                        //eprintln!("the display for new lst ={display}" );
+                        write_output_to_stream(stream, &display);
                     }
                 }
             }

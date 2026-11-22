@@ -32,7 +32,7 @@ async fn main() {
                 Ok(_stream) => {
                     println!("accepted new connection");
                     let value = key_val.clone();
-                    let my_list_table_clone: Arc<Mutex<Vec<List>>> = my_list_table.clone();
+                    let my_list_table_clone: MyListTable = my_list_table.clone();
                     thread::spawn(move || {
                         handle_client(_stream, &value, &my_list_table_clone);
                     });

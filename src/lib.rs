@@ -90,6 +90,11 @@ impl List {
         self.elements.push(content)
     }
 
+    pub fn get_list_len(&mut self) -> usize {
+        //eprintln!("list content = {:?}, lst_len={}", self.elements, self.elements.len());
+        return self.elements.len();
+    }
+
     // display after an element is added to list
     pub fn display(&mut self) -> String {
         return format!("(integer) {}", self.elements.len());

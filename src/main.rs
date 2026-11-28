@@ -159,14 +159,22 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_ta
             // check if list exist
             {
                 let mut list_unlocked = list_table.lock().unwrap();
+                //eprintln!("unlocked hashmap keys = {:?}", list_unlocked.keys());
                 match list_unlocked.get_mut(name_owned) {
                     Some(lst) => {
+                        eprintln!(
+                            "[RPUSH] list found -> LIST_NAME={name_owned}, current_content={:?}",
+                            lst.elements
+                        );
                         amend_rpush_list(stream, contents, lst);
                     }
                     None => {
+                        eprintln!("[RPUSH] list not found, creating lst={name_owned}");
                         let mut lst = List::new();
                         lst.update_name(name_owned);
                         amend_rpush_list(stream, contents, &mut lst);
+                        // add to hashmap
+                        list_unlocked.insert(name_owned.to_string(), lst);
                     }
                 }
             }
@@ -181,6 +189,6 @@ fn resp_handler(cow: Cow<'_, str>, stream: &TcpStream, key_val: &KeyVal, list_ta
 
 fn amend_rpush_list(stream: &TcpStream, contents: Vec<&str>, lst: &mut List) {
     contents.iter().for_each(|a| lst.add_to_list(a.to_string()));
-    let output = format_interger(contents.len());
+    let output = format_interger(lst.get_list_len());
     write_output_to_stream(stream, &output);
 }
